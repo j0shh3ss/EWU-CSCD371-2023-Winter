@@ -1,14 +1,10 @@
 ﻿namespace Logger.Tests;
 
-public class TestLogger : ILogger
+public class TestLogger : BaseLogger, ILogger
 {
-    public TestLogger(string logSource)
-    {
-        LogSource=logSource;
-    }
+    public TestLogger(string logSource) : base(logSource) { }
+    
     public List<(LogLevel LogLevel, string Message)> LoggedMessages { get; } = new List<(LogLevel, string)>();
-
-    public string LogSource { get; }
 
     public static ILogger CreateLogger(in TestLoggerConfiguration configuration) => 
         new TestLogger(configuration.LogSource);
@@ -18,16 +14,11 @@ public class TestLogger : ILogger
             ? CreateLogger(testLoggerConfiguration)
             : throw new ArgumentException("Invalid configuration type", nameof(configuration));
 
-    public void Log(LogLevel logLevel, string message)
-    {
-        LoggedMessages.Add((logLevel, message));
-    }
+    public override void Log(LogLevel logLevel, string message) => LoggedMessages.Add((logLevel, message));
 }
 
-public class TestLoggerConfiguration : ILoggerConfiguration
+public class TestLoggerConfiguration : BaseLoggerConfiguration, ILoggerConfiguration
 {
-    public TestLoggerConfiguration(string className) => LogSource=className;
+    public TestLoggerConfiguration(string logSource) : base(logSource) { }
 
-    public string LogSource { get; set; }
-    
 }

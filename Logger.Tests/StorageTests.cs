@@ -20,14 +20,14 @@ public class StorageTests
         Assert.AreEqual<Book>(item1, item2);
         Assert.IsFalse(ReferenceEquals(item1, item2));
         Guid expectedGuid = item1.Id;
-        Storage.Add(item2);
-        Assert.IsTrue(Storage.Contains(item2));
+        Storage.Add((IEntity)item2);
+        Assert.IsTrue(Storage.Contains((IEntity)item2));
         Assert.AreEqual(item1, Storage.Get(expectedGuid));
     }
 
     private static Book CreateBook()
     {
-        return new("Title", "Author", "42");
+        return new("Title", "Author");
     }
 
     [TestMethod]

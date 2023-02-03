@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Logger;
-public record class Student(Guid Id, string FirstName, string LastName, string Email) : IEntity
+﻿namespace Logger;
+public record class Student(Guid Id, string FirstName, string LastName, string Email, string? MiddleName = null, string? Major = null) 
+    : Person(Id, FirstName, LastName, Email, MiddleName), IEntity
 {
-    public string FirstName { get; } = FirstName??throw new ArgumentNullException(nameof(FirstName));
-    public string LastName { get; } = LastName??throw new ArgumentNullException(nameof(LastName));
-    public string Email { get; } = Email??throw new ArgumentNullException(nameof(Email));
-
+    public Student(string FirstName, string LastName, string Email, string? MiddleName = null, string? Major = null) 
+        : this(Guid.NewGuid(), FirstName, LastName, Email, MiddleName, Major) { }
     public string Name { get => FirstName + " " + LastName; }
-}
-{
 }

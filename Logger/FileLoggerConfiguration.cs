@@ -2,20 +2,15 @@
 
 public class FileLoggerConfiguration : ILoggerConfiguration
 {
-    public FileLoggerConfiguration(string fileName, string className)
+    public FileLoggerConfiguration(string filePath, string logSource)
     {
-        if (string.IsNullOrWhiteSpace(fileName))
-        {
-            throw new ArgumentException($"'{nameof(fileName)}' cannot be null or whitespace.", nameof(fileName));
-        }
+        FilePath = string.IsNullOrWhiteSpace(filePath)
+                ? throw new ArgumentException($"'{nameof(filePath)}' cannot be null or whitespace.", nameof(filePath))
+                : filePath;
+        LogSource = string.IsNullOrWhiteSpace(logSource)
+                ? throw new ArgumentException($"'{nameof(logSource)}' cannot be null or whitespace.", nameof(logSource))
+                : logSource;
 
-        if (string.IsNullOrWhiteSpace(className))
-        {
-            throw new ArgumentException($"'{nameof(className)}' cannot be null or whitespace.", nameof(className));
-        }
-
-        FilePath = fileName;
-        LogSource = className;
     }
     
     public string FilePath { get;  }
