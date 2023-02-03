@@ -5,20 +5,20 @@ using System.Collections.Generic;
 namespace Logger.Tests;
 
 [TestClass]
-public class BaseLoggerMixinsTests
+public class LoggerMixinsTests
 {
     [TestMethod]
     [ExpectedException(typeof(ArgumentNullException))]
     public void Error_WithNullLogger_ThrowsException()
     {
-        BaseLoggerMixins.Error(null!, "");
+        LoggerMixins.Error(null!, "");
     }
 
     [TestMethod]
     public void Error_WithData_LogsMessage()
     {
         // Arrange
-        var logger = new TestLogger(nameof(BaseLoggerMixinsTests));
+        var logger = new TestLogger(nameof(LoggerMixinsTests));
 
         // Act
         logger.Error("Message 42");
@@ -29,21 +29,4 @@ public class BaseLoggerMixinsTests
         Assert.AreEqual("Message 42", logger.LoggedMessages[0].Message);
     }
 
-}
-
-public class TestLogger : BaseLogger
-{
-    public TestLogger(string logSource)
-    {
-        LogSource=logSource;
-    }
-    public List<(LogLevel LogLevel, string Message)> LoggedMessages { get; } = new List<(LogLevel, string)>();
-
-    public override string LogSource { get; }
-
-
-    public override void Log(LogLevel logLevel, string message)
-    {
-        LoggedMessages.Add((logLevel, message));
-    }
 }
