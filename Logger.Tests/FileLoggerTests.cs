@@ -31,4 +31,12 @@ public class FileLoggerTests : FileLoggerTestsBase
             }
         }
     }
+
+    [TestMethod]
+    public void CreateLogger_Succes()
+    {
+        FileLogger fileLogger = FileLogger.CreateLogger(new FileLoggerConfiguration(FilePath, nameof(FileLoggerTests)));
+        Assert.AreEqual(nameof(FileLoggerTests), fileLogger.LogSource);
+        Assert.AreEqual(FilePath, fileLogger.FilePath);
+    }
 }
