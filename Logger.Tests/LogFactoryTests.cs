@@ -20,3 +20,5 @@ public class LogFactoryTests : FileLoggerTestsBase
         //TestLogger logger = logFactory.CreateLogger(nameof(LogFactoryTests));
     }
 }
+
+
