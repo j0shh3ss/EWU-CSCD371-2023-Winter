@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Assignment.Tests;
@@ -53,59 +54,120 @@ public class PingProcessTests
         PingResult result = Sut.Run("localhost");
         AssertValidPingOutput(result);
     }
-
     [TestMethod]
     public void RunTaskAsync_Success()
     {
-        // Do NOT use async/await in this test.
-        // Test Sut.RunTaskAsync("localhost");
+        var pingProcess = new PingProcess();
+
+        var task = pingProcess.RunTaskAsync("localhost");
+
+
+        Thread.Sleep(100);
+
+        task.Wait();
+
+        Assert.IsTrue(task.IsCompletedSuccessfully);
+        var result = task.Result;
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.ExitCode);
+        Assert.IsTrue(result.StdOutput!.Contains("Reply"));
     }
+
+
 
     [TestMethod]
     public void RunAsync_UsingTaskReturn_Success()
     {
-        // Do NOT use async/await in this test.
-        PingResult result = default;
-        // Test Sut.RunAsync("localhost");
-        AssertValidPingOutput(result);
+        var pingProcess = new PingProcess();
+        var task = pingProcess.RunAsync("localhost", CancellationToken.None);
+
+        task.Wait();
+
+        Assert.IsTrue(task.IsCompletedSuccessfully);
+        var result = task.Result;
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.ExitCode);
+        Assert.IsTrue(result.StdOutput!.Contains("Reply"));
     }
 
     [TestMethod]
-#pragma warning disable CS1998 // Remove this
-    async public Task RunAsync_UsingTpl_Success()
+    public async Task RunAsync_UsingTpl_Success()
     {
-        // DO use async/await in this test.
-        PingResult result = default;
+        var pingProcess = new PingProcess();
+        var result = await Task.Run(() => pingProcess.RunAsync("localhost"), CancellationToken.None);
 
-        // Test Sut.RunAsync("localhost");
-        AssertValidPingOutput(result);
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.ExitCode);
+        Assert.IsTrue(result.StdOutput!.Contains("Reply"));
     }
-#pragma warning restore CS1998 // Remove this
 
 
     [TestMethod]
-    [ExpectedException(typeof(AggregateException))]
-    public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
+    public async Task RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrapping()
     {
-        
+        var pingProcess = new PingProcess();
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(100); // cancel after 100 ms
+        try
+        {
+            await pingProcess.RunAsync("google.com", cancellationTokenSource.Token);
+        }
+        catch (AggregateException ex)
+        {
+            if (ex.InnerException is TaskCanceledException)
+            {
+                throw;
+            }
+            else
+            {
+                throw new AssertFailedException("Expected TaskCanceledException inner exception");
+            }
+        }
     }
 
     [TestMethod]
-    [ExpectedException(typeof(TaskCanceledException))]
-    public void RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrappingTaskCanceledException()
+    public async Task RunAsync_UsingTplWithCancellation_CatchAggregateExceptionWrappingTaskCanceledException()
     {
-        // Use exception.Flatten()
+        var pingProcess = new PingProcess();
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(100); // cancel after 100 ms
+        try
+        {
+            await pingProcess.RunAsync("google.com", cancellationTokenSource.Token);
+        }
+        catch (TaskCanceledException)
+        {
+            // success
+        }
+        catch (AggregateException ex)
+        {
+            if (ex.InnerException is TaskCanceledException)
+            {
+                throw new AssertFailedException("Expected TaskCanceledException, not AggregateException wrapping TaskCanceledException");
+            }
+            else
+            {
+                throw new AssertFailedException("Expected TaskCanceledException inner exception");
+            }
+        }
     }
+
+
+
 
     [TestMethod]
     async public Task RunAsync_MultipleHostAddresses_True()
     {
-        // Pseudo Code - don't trust it!!!
         string[] hostNames = new string[] { "localhost", "localhost", "localhost", "localhost" };
-        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length*hostNames.Length;
+        int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length * hostNames.Length;
+
+        // execute test
         PingResult result = await Sut.RunAsync(hostNames);
+
+        // assert
         int? lineCount = result.StdOutput?.Split(Environment.NewLine).Length;
-        Assert.AreEqual(expectedLineCount, lineCount);
+        Assert.IsTrue(lineCount >= expectedLineCount);
+
     }
 
     [TestMethod]

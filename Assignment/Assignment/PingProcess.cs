@@ -25,39 +25,101 @@ public class PingProcess
         return new PingResult( process.ExitCode, stringBuilder?.ToString());
     }
 
-    public Task<PingResult> RunTaskAsync(string hostNameOrAddress)
+    public async Task<PingResult> RunTaskAsync(string hostNameOrAddress)
     {
-        throw new NotImplementedException();
-    }
-
-    async public Task<PingResult> RunAsync(
-        string hostNameOrAddress, CancellationToken cancellationToken = default)
-    {
-        Task task = null!;
-        await task;
-        throw new NotImplementedException();
-    }
-
-    async public Task<PingResult> RunAsync(params string[] hostNameOrAddresses)
-    {
+        StartInfo.Arguments = hostNameOrAddress;
         StringBuilder? stringBuilder = null;
-        ParallelQuery<Task<int>>? all = hostNameOrAddresses.AsParallel().Select(async item =>
+        void updateStdOutput(string? line) =>
+            (stringBuilder ??= new StringBuilder()).AppendLine(line);
+        Process process = RunProcessInternal(StartInfo, updateStdOutput, default, default);
+        var processExited = new TaskCompletionSource<bool>();
+        process.Exited += (sender, args) => processExited.TrySetResult(true);
+        if (process.HasExited)
         {
-            Task<PingResult> task = null!;
-            // ...
+            return new PingResult(process.ExitCode, stringBuilder?.ToString());
+        }
+        else
+        {
+            await Task.WhenAny(processExited.Task, Task.Delay(-1));
+            if (processExited.Task.IsCompleted)
+            {
+                return new PingResult(process.ExitCode, stringBuilder?.ToString());
+            }
+            else
+            {
+                process.Kill(true);
+                throw new TimeoutException();
+            }
+        }
+    }
 
-            await task.WaitAsync(default(CancellationToken));
-            return task.Result.ExitCode;
+
+
+    async public Task<PingResult> RunAsync(string hostNameOrAddress, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        StartInfo.Arguments = hostNameOrAddress;
+        StringBuilder? stringBuilder = null;
+        void updateStdOutput(string? line) =>
+            (stringBuilder ??= new StringBuilder()).AppendLine(line);
+
+        Process process = RunProcessInternal(StartInfo, updateStdOutput, default, default);
+
+        var processExited = new TaskCompletionSource<bool>();
+        process.Exited += (sender, args) => processExited.TrySetResult(true);
+
+        if (process.HasExited)
+        {
+            return new PingResult(process.ExitCode, stringBuilder?.ToString());
+        }
+        else
+        {
+            await Task.WhenAny(processExited.Task, Task.Delay(-1, cancellationToken));
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                process.Kill(true);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            if (processExited.Task.IsCompleted)
+            {
+                return new PingResult(process.ExitCode, stringBuilder?.ToString());
+            }
+            else
+            {
+                process.Kill(true);
+                throw new OperationCanceledException(cancellationToken);
+            }
+        }
+    }
+
+
+    async public Task<PingResult> RunAsync(IEnumerable<string> hostNameOrAddresses, CancellationToken cancellationToken = default)
+    {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        var pingTasks = hostNameOrAddresses.Select(async host =>
+        {
+            var pingResult = await RunAsync(host, cancellationToken);
+            lock (stringBuilder)
+            {
+                stringBuilder.Append(pingResult.StdOutput);
+            }
+            return pingResult.ExitCode;
         });
 
-        await Task.WhenAll(all);
-        int total = all.Aggregate(0, (total, item) => total + item.Result);
-        return new PingResult(total, stringBuilder?.ToString());
+        var allExitCodes = await Task.WhenAll(pingTasks);
+        var totalExitCode = allExitCodes.Sum();
+
+        return new PingResult(totalExitCode, stringBuilder.ToString());
     }
 
-    async public Task<PingResult> RunLongRunningAsync(
-        string hostNameOrAddress, CancellationToken cancellationToken = default)
-    {
+
+
+    async public Task<PingResult> RunLongRunningAsync(string hostNameOrAddress, CancellationToken cancellationToken = default)
+        { 
         Task task = null!;
         await task;
         throw new NotImplementedException();
