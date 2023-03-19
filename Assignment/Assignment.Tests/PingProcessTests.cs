@@ -107,7 +107,7 @@ public class PingProcessTests
     {
         var pingProcess = new PingProcess();
         var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.CancelAfter(100); // cancel after 100 ms
+        cancellationTokenSource.CancelAfter(100);
         try
         {
             await pingProcess.RunAsync("google.com", cancellationTokenSource.Token);
@@ -130,7 +130,7 @@ public class PingProcessTests
     {
         var pingProcess = new PingProcess();
         var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.CancelAfter(100); // cancel after 100 ms
+        cancellationTokenSource.CancelAfter(100);
         try
         {
             await pingProcess.RunAsync("google.com", cancellationTokenSource.Token);
@@ -161,15 +161,13 @@ public class PingProcessTests
         string[] hostNames = new string[] { "localhost", "localhost", "localhost", "localhost" };
         int expectedLineCount = PingOutputLikeExpression.Split(Environment.NewLine).Length * hostNames.Length;
 
-        // execute test
         PingResult result = await Sut.RunAsync(hostNames);
 
-        // assert
         int? lineCount = result.StdOutput?.Split(Environment.NewLine).Length;
         Assert.IsTrue(lineCount >= expectedLineCount);
 
     }
-
+    //Still need to implement   \/
     [TestMethod]
 #pragma warning disable CS1998 // Remove this
     async public Task RunLongRunningAsync_UsingTpl_Success()
